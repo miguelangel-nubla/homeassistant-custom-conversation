@@ -7,10 +7,9 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from langfuse import Langfuse
-from langfuse.api import CreateScoreConfigRequest
-from langfuse.api.resources.commons.types import ScoreDataType
-from langfuse.decorators import observe
+from langfuse.api import CreateScoreConfigRequest, ScoreConfigDataType
 from langfuse.model import Prompt
+from langfuse import observe
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -120,7 +119,7 @@ class PromptManager:
         if config_entry and config_entry.options.get(CONF_LANGFUSE_SECTION, {}).get(
             CONF_ENABLE_LANGFUSE
         ):
-            prompt_object, langfuse_prompt = await self._get_langfuse_prompt(
+            result = await self._get_langfuse_prompt(
                 config_entry.options.get(CONF_LANGFUSE_SECTION, {}).get(
                     CONF_LANGFUSE_BASE_PROMPT_ID
                 ),
@@ -131,8 +130,10 @@ class PromptManager:
                     "user_name": context.user_name,
                 },
             )
-            if langfuse_prompt:
-                return prompt_object, langfuse_prompt
+            if result is not None:
+                prompt_object, langfuse_prompt = result
+                if langfuse_prompt:
+                    return prompt_object, langfuse_prompt
 
         try:
             base_prompt = self._get_prompt_config(
@@ -165,7 +166,7 @@ class PromptManager:
         if config_entry and config_entry.options.get(CONF_LANGFUSE_SECTION, {}).get(
             CONF_ENABLE_LANGFUSE
         ):
-            prompt_object, langfuse_prompt = await self._get_langfuse_prompt(
+            result = await self._get_langfuse_prompt(
                 config_entry.options.get(CONF_LANGFUSE_SECTION, {}).get(
                     CONF_LANGFUSE_API_PROMPT_ID
                 ),
@@ -189,8 +190,10 @@ class PromptManager:
                     ),
                 },
             )
-            if langfuse_prompt:
-                return prompt_object, langfuse_prompt
+            if result is not None:
+                prompt_object, langfuse_prompt = result
+                if langfuse_prompt:
+                    return prompt_object, langfuse_prompt
         prompt_parts = []
 
         if not context.exposed_entities:
@@ -334,7 +337,7 @@ class LangfuseClient:
                 if not score_config:
                     score_config_request = CreateScoreConfigRequest(
                         name=LANGFUSE_SCORE_NAME,
-                        data_type=ScoreDataType.CATEGORICAL,
+                        data_type=ScoreConfigDataType.CATEGORICAL,
                         categories=[
                             {
                                 "label": LANGFUSE_SCORE_POSITIVE,
